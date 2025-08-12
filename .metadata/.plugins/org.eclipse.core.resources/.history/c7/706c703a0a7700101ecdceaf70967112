@@ -1,0 +1,138 @@
+package com.ur.spring.finalex.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+
+import java.util.List;
+
+@Controller
+public class ReservationController {
+    
+	 private final ReservationRepository reservationRepository;
+	    private final PaymentService paymentService;
+	    private final TicketService ticketService;
+	    
+	    public ReservationController(ReservationRepository reservationRepository,
+	                               PaymentService paymentService,
+	                               TicketService ticketService) {
+	        this.reservationRepository = reservationRepository;
+	        this.paymentService = paymentService;
+	        this.ticketService = ticketService;
+	    }
+
+    // Show create form
+    @GetMapping("/reservation")
+    public String showCreateForm(Model model) {
+        model.addAttribute("reservation", new Reservation());
+        return "reservation-form";
+    }
+
+    @PostMapping
+    public String createReservation(@ModelAttribute Reservation reservation, 
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            // 1. Save reservation
+            Reservation savedReservation = reservationRepository.save(reservation);
+            
+            // 2. Process payment
+            Payment payment = paymentService.createPayment(savedReservation);
+            
+            // 3. Generate ticket
+            AirlineTicket ticket = ticketService.generateTicket(savedReservation, payment);
+            
+            // 4. Update reservation with payment and ticket
+            savedReservation.setPayment(payment);
+            savedReservation.setTicket(ticket);
+            reservationRepository.save(savedReservation);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Reservation completed! Ticket #: " + ticket.getNumber());
+            return "redirect:/reservations/" + savedReservation.getId();
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Error creating reservation: " + e.getMessage());
+            return "redirect:/reservation";
+        }
+    }
+
+    @GetMapping("/reservations/view/{id}")
+    public String viewReservation(@PathVariable String id, Model model) {
+        reservationRepository.findById(id).ifPresent(reservation -> {
+            model.addAttribute("reservation", reservation);
+            // Add payment and ticket details explicitly if needed
+            if (reservation.getPayment() == null) {
+                model.addAttribute("payment", paymentService.findByReservationId(id));
+            }
+            if (reservation.getTicket() == null) {
+                model.addAttribute("ticket", ticketService.findByReservationId(id));
+            }
+        });
+        return "reservation-view";
+    }
+
+    // List all reservations
+    @GetMapping("/reservations")
+    public String listReservations(Model model) {
+        model.addAttribute("reservations", reservationRepository.findAll());
+        return "reservation-list";
+    }
+
+    // Show single reservation
+    @GetMapping("/reservations/vieww/{id}")
+    public String viewReservation1(@PathVariable String id, Model model) {
+        reservationRepository.findById(id).ifPresent(reservation -> {
+            model.addAttribute("reservation", reservation);
+        });
+        return "reservation-view";
+    }
+
+    // Show edit form
+    @GetMapping("/reservations/edit/{id}")
+    public String showEditForm(@PathVariable String id, Model model) {
+        reservationRepository.findById(id).ifPresent(reservation -> {
+            model.addAttribute("reservation", reservation);
+        });
+        return "reservation-form";
+    }
+
+    // Process edit form submission
+    @PostMapping("/reservations/update/{id}")
+    public String updateReservation(@PathVariable String id, 
+                                  @ModelAttribute Reservation reservation,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+        	// Log the incoming request
+            System.out.println("Attempting to update reservation with ID: " + id);
+            System.out.println("Received reservation data: " + reservation.toString());
+            reservation.setId(id); // Ensure ID is preserved
+            reservationRepository.save(reservation);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Reservation updated successfully!");
+            return "redirect:/reservations";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Error updating reservation: " + e.getMessage());
+            return "redirect:/reservations/edit/" + id;
+        }
+    }
+
+    // Delete reservation
+    @PostMapping("/reservations/delete/{id}")
+    public String deleteReservation(@PathVariable String id, 
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            reservationRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Reservation deleted successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Error deleting reservation: " + e.getMessage());
+        }
+        return "redirect:/reservations";
+    }
+}

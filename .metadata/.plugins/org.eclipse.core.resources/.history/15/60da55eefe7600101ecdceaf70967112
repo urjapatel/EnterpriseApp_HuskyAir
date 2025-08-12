@@ -1,0 +1,16 @@
+spring.data.mongodb.uri=mongodb+srv://root:root%40123@ite5315-urja.3zqez.mongodb.net/huskyair?retryWrites=true&w=majority
+
+# MongoDB configuration
+#spring.data.mongodb.host=localhost
+#spring.data.mongodb.port=27017
+#spring.data.mongodb.database=huskyair
+
+# Thymeleaf configuration
+spring.thymeleaf.cache=false
+spring.thymeleaf.prefix=classpath:/templates/
+spring.thymeleaf.suffix=.html
+
+# Jackson configuration
+spring.jackson.serialization.indent-output=true
+spring.jackson.date-format=yyyy-MM-dd
+spring.jackson.time-zone=UTC

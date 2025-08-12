@@ -1,0 +1,78 @@
+package com.ur.spring.finalex.controller;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+
+@RestController
+@RequestMapping("/api/reservations")
+public class ApiController {
+    
+    private final ReservationRepository reservationRepository;
+    private final ObjectMapper objectMapper;
+    
+    public ApiController(ReservationRepository reservationRepository, ObjectMapper objectMapper) {
+        this.reservationRepository = reservationRepository;
+        this.objectMapper = objectMapper;
+    }
+    
+    @GetMapping
+    public ResponseEntity<String> getAllReservations() throws JsonProcessingException {
+        List<Reservation> reservations = reservationRepository.findAll();
+        String json = objectMapper.writeValueAsString(reservations);
+        return ResponseEntity.ok(json);
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<String> getReservationById(@PathVariable String id) throws JsonProcessingException {
+        return reservationRepository.findById(id)
+                .map(reservation -> {
+                    try {
+                        return ResponseEntity.ok(objectMapper.writeValueAsString(reservation));
+                    } catch (JsonProcessingException e) {
+                        return ResponseEntity.badRequest().build();
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<String> createReservation(@RequestBody String reservationJson) throws JsonProcessingException {
+        Reservation reservation = objectMapper.readValue(reservationJson, Reservation.class);
+        Reservation saved = reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(saved));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateReservation(@PathVariable String id, @RequestBody String reservationJson) throws JsonProcessingException {
+        if (!reservationRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        Reservation reservation = objectMapper.readValue(reservationJson, Reservation.class);
+        reservation.setId(id);
+        Reservation updated = reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(updated));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReservation(@PathVariable String id) {
+        if (!reservationRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        reservationRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+}

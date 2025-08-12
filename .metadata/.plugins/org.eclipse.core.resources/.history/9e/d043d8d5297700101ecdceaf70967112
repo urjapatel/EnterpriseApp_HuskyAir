@@ -1,0 +1,151 @@
+package com.ur.spring.finalex.controller;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ur.spring.finalex.model.AirlineTicket;
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+import com.ur.spring.finalex.service.PaymentService;
+import com.ur.spring.finalex.service.TicketService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/reservations")
+public class ApiController {
+
+    private final ReservationRepository reservationRepository;
+    private final PaymentService paymentService;
+    private final TicketService ticketService;
+    private final ObjectMapper objectMapper;
+
+    public ApiController(ReservationRepository reservationRepository,
+                         PaymentService paymentService,
+                         TicketService ticketService,
+                         ObjectMapper objectMapper) {
+        this.reservationRepository = reservationRepository;
+        this.paymentService = paymentService;
+        this.ticketService = ticketService;
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping
+    public ResponseEntity<String> getAllReservations() throws JsonProcessingException {
+        List<Reservation> reservations = reservationRepository.findAll();
+        return ResponseEntity.ok(objectMapper.writeValueAsString(reservations));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<String> getReservationById(@PathVariable String id) {
+        Optional<Reservation> reservation = reservationRepository.findById(id);
+        if (reservation.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            return ResponseEntity.ok(objectMapper.writeValueAsString(reservation.get()));
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing reservation data");
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<String> createReservation(@RequestBody String reservationJson) throws JsonProcessingException {
+        Reservation reservation = objectMapper.readValue(reservationJson, Reservation.class);
+        Reservation saved = reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(saved));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateReservation(@PathVariable String id, @RequestBody String reservationJson) {
+        Optional<Reservation> existingOpt = reservationRepository.findById(id);
+        if (existingOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            Reservation existing = existingOpt.get();
+            Reservation updates = objectMapper.readValue(reservationJson, Reservation.class);
+            existing.setFirstName(updates.getFirstName());
+            existing.setLastName(updates.getLastName());
+            existing.setNumberOfPassengers(updates.getNumberOfPassengers());
+            existing.setTravelClass(updates.getTravelClass());
+            existing.setPhoneNumber(updates.getPhoneNumber());
+            existing.setTime(updates.getTime());
+            existing.setDateOfDeparture(updates.getDateOfDeparture());
+            Reservation updated = reservationRepository.save(existing);
+            return ResponseEntity.ok(objectMapper.writeValueAsString(updated));
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid JSON format");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReservation(@PathVariable String id) {
+        if (!reservationRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        reservationRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ===== Additional APIs for ReservationController use =====
+
+    @PostMapping("/{id}/payment")
+    public ResponseEntity<String> createPayment(@PathVariable String id) throws JsonProcessingException {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        Payment payment = paymentService.createPayment(reservation);
+        reservation.setPayment(payment);
+        reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(payment));
+    }
+
+    @GetMapping("/{id}/payment")
+    public ResponseEntity<String> getPayment(@PathVariable String id) throws JsonProcessingException {
+        Payment payment = paymentService.findByReservationId(id);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(payment));
+    }
+
+    @PostMapping("/{id}/ticket")
+    public ResponseEntity<String> createTicket(@PathVariable String id) throws JsonProcessingException {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        AirlineTicket ticket = ticketService.generateTicket(reservation, reservation.getPayment());
+        reservation.setTicket(ticket);
+        reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(ticket));
+    }
+
+    @GetMapping("/{id}/ticket")
+    public ResponseEntity<String> getTicket(@PathVariable String id) throws JsonProcessingException {
+        AirlineTicket ticket = ticketService.findByReservationId(id);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(ticket));
+    }
+
+    @PostMapping("/{id}/process-payment")
+    public ResponseEntity<String> processPayment(@PathVariable String id) throws JsonProcessingException {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        Payment processedPayment = paymentService.processPayment(reservation.getPayment().getId());
+        reservation.setPayment(processedPayment);
+        reservation.setStatus("COMPLETED");
+        reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(processedPayment));
+    }
+
+    @PostMapping("/{id}/issue-ticket")
+    public ResponseEntity<String> issueTicket(@PathVariable String id) throws JsonProcessingException {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        AirlineTicket ticket = ticketService.findByReservationId(id);
+        ticketService.issueTicket(ticket);
+        reservation.setStatus("COMPLETED");
+        reservationRepository.save(reservation);
+        return ResponseEntity.ok(objectMapper.writeValueAsString(ticket));
+    }
+}

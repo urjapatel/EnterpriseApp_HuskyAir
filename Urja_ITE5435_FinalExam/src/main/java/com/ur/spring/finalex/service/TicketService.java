@@ -1,0 +1,67 @@
+package com.ur.spring.finalex.service;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.ur.spring.finalex.model.AirlineTicket;
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.AirlineTicketRepository;
+
+@Service
+public class TicketService {
+    
+    private final AirlineTicketRepository ticketRepository;
+    
+    public TicketService(AirlineTicketRepository ticketRepository) {
+        this.ticketRepository = ticketRepository;
+    }
+    
+    public AirlineTicket generateTicket(Reservation reservation, Payment payment) {
+        AirlineTicket ticket = new AirlineTicket();
+        ticket.setReservation(reservation);  // Set the reservation reference
+        ticket.setNumber(generateTicketNumber());
+        ticket.setPrice(calculateTicketPrice(reservation, payment));
+        ticket.setDetails(buildTicketDetails(reservation));
+        ticket.setStatus("PENDING");
+        return ticketRepository.save(ticket);
+    }
+    
+    private double calculateTicketPrice(Reservation reservation, Payment payment) {
+        // You can use either the payment amount or calculate from reservation
+        return payment.getAmount(); // or use reservation details to calculate
+    }
+    
+    private String buildTicketDetails(Reservation reservation) {
+        return String.format("Ticket for %s %s, %d passengers in %s class",
+                reservation.getFirstName(),
+                reservation.getLastName(),
+                reservation.getNumberOfPassengers(),
+                reservation.getTravelClass());
+    }
+    
+    private String generateTicketNumber() {
+        return "TK" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+    
+    public void issueTicket(AirlineTicket ticket) {
+        ticket.setDetails(ticket.getDetails() + " | ISSUED");
+        ticket.setStatus("ISSUED");
+        ticketRepository.save(ticket);
+    }
+    
+    public AirlineTicket findByReservationId(String reservationId) {
+        return ticketRepository.findByReservationId(reservationId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+    }
+    
+    public void updateTicket(AirlineTicket ticket) {
+        ticketRepository.save(ticket);
+    }
+
+    public void deleteTicket(String ticketId) {
+        ticketRepository.deleteById(ticketId);
+    }
+}

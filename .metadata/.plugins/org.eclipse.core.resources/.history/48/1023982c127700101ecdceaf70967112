@@ -1,0 +1,63 @@
+package com.ur.spring.finalex.service;
+
+import java.time.LocalDate;
+
+import org.springframework.stereotype.Service;
+
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.PaymentRepository;
+
+@Service
+public class PaymentService {
+    
+    private final PaymentRepository paymentRepository;
+
+    public PaymentService(PaymentRepository paymentRepository) {
+        this.paymentRepository = paymentRepository;
+    }
+    
+    public Payment createPayment(Reservation reservation) {
+        Payment payment = new Payment();
+        payment.setReservationId(reservation.getId());
+        payment.setReservation(reservation);
+        payment.setAmount(calculateAmount(reservation));
+        payment.setDate(LocalDate.now());
+        payment.setStatus("PENDING");
+        payment.setDetails(buildPaymentDetails(reservation));
+        return paymentRepository.save(payment);
+    }
+    
+    public Payment processPayment(String paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+            .orElseThrow(() -> new RuntimeException("Payment not found"));
+        
+        payment.setStatus("COMPLETED");
+        payment.setDate(LocalDate.now());
+        return paymentRepository.save(payment);
+    }
+    
+    private double calculateAmount(Reservation reservation) {
+        double basePrice = 199.99; // Base price
+        // Add pricing logic based on class and passengers
+        if ("Business".equalsIgnoreCase(reservation.getTravelClass())) {
+            basePrice *= 1.5;
+        } else if ("First".equalsIgnoreCase(reservation.getTravelClass())) {
+            basePrice *= 2.0;
+        }
+        return basePrice * reservation.getNumberOfPassengers();
+    }
+    
+    private String buildPaymentDetails(Reservation reservation) {
+        return String.format("Payment for reservation #%s (%s %s, %d passengers)",
+                reservation.getId(),
+                reservation.getFirstName(),
+                reservation.getLastName(),
+                reservation.getNumberOfPassengers());
+    }
+    
+    public Payment findByReservationId(String reservationId) {
+        return paymentRepository.findByReservationId(reservationId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+    }
+}

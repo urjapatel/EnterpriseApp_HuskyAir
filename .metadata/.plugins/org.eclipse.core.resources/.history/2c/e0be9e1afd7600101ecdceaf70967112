@@ -1,0 +1,5 @@
+package com.ur.spring.finalex.model;
+
+public class Reservation {
+
+}

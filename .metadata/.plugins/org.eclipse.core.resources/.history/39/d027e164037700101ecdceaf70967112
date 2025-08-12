@@ -1,0 +1,52 @@
+package com.ur.spring.finalex.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+
+import java.util.List;
+
+@Controller
+public class ReservationController {
+    
+    private final ReservationRepository reservationRepository;
+    
+    public ReservationController(ReservationRepository reservationRepository) {
+        this.reservationRepository = reservationRepository;
+    }
+
+    @GetMapping("/reservation")
+    public String showReservationForm(Model model) {
+        model.addAttribute("reservation", new Reservation());
+        return "reservation-form";
+    }
+    
+    @PostMapping("/reservation")
+    public String submitReservation(@ModelAttribute Reservation reservation, 
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            // Save to database
+            Reservation savedReservation = reservationRepository.save(reservation);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Reservation created successfully! ID: " + savedReservation.getId());
+            return "redirect:/reservations";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Error creating reservation: " + e.getMessage());
+            return "redirect:/reservation";
+        }
+    }
+    
+    @GetMapping("/reservations")
+    public String getAllReservations(Model model) {
+        List<Reservation> reservations = reservationRepository.findAll();
+        model.addAttribute("reservations", reservations);
+        return "reservation-list";
+    }
+}

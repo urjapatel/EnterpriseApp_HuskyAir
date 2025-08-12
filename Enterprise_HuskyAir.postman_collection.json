@@ -1,0 +1,191 @@
+{
+	"info": {
+		"_postman_id": "c6717b46-36e5-4af9-a43f-431b50ad318a",
+		"name": "Enterprise_HuskyAir",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "42136623",
+		"_collection_link": "https://expense-tracker-web-project.postman.co/workspace/My-Workspace~8ba29c1c-50cd-48ab-83fe-60fea296b240/collection/42136623-c6717b46-36e5-4af9-a43f-431b50ad318a?action=share&source=collection_link&creator=42136623"
+	},
+	"item": [
+		{
+			"name": "Get reservation by id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/reservations/689aa096f7868c12a2fc6127",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations",
+						"689aa096f7868c12a2fc6127"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete reservation by id",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/reservations/689aa096f7868c12a2fc6127",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations",
+						"689aa096f7868c12a2fc6127"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update reservation by id",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"firstName\": \"Jane\",\r\n  \"lastName\": \"Smith\",\r\n  \"numberOfPassengers\": 4,\r\n  \"travelClass\": \"First Class\",\r\n  \"phoneNumber\": \"9876543210\",\r\n  \"dateOfDeparture\": \"2025-08-22\",\r\n  \"time\": \"16:00\",\r\n  \"status\": \"PENDING\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/reservations/689aa096f7868c12a2fc6127",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations",
+						"689aa096f7868c12a2fc6127"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all reservations",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/reservations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create reservations",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"firstName\": \"Jane\",\r\n  \"lastName\": \"Smith\",\r\n  \"numberOfPassengers\": 3,\r\n  \"travelClass\": \"Business\",\r\n  \"phoneNumber\": \"9876543210\",\r\n  \"dateOfDeparture\": \"2025-08-20\",\r\n  \"time\": \"14:00\",\r\n  \"status\": \"PENDING\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/reservations",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Process Payment",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/reservations/689ab8ed22e4c91599988b8e/process-payment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations",
+						"689ab8ed22e4c91599988b8e",
+						"process-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Issue Ticket",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/reservations/689ab8ed22e4c91599988b8e/issue-ticket",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"reservations",
+						"689ab8ed22e4c91599988b8e",
+						"issue-ticket"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

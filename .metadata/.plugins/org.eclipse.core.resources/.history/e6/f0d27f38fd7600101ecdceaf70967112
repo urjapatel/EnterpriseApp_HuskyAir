@@ -1,0 +1,5 @@
+package com.ur.spring.finalex.repository;
+
+public class AirlineTicketRepository {
+
+}

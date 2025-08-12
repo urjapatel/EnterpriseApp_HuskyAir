@@ -1,0 +1,136 @@
+package com.ur.spring.finalex.controller;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ur.spring.finalex.model.AirlineTicket;
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+
+@Controller
+public class ReservationController {
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String apiBaseUrl = "http://localhost:8080/api/reservations";
+
+    public ReservationController(RestTemplate restTemplate, ObjectMapper objectMapper) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping("/reservation")
+    public String showCreateForm(Model model) {
+        model.addAttribute("reservation", new Reservation());
+        return "reservation-form";
+    }
+
+    @PostMapping("/reservation")
+    public String createReservation(@ModelAttribute Reservation reservation, RedirectAttributes redirectAttributes) {
+        try {
+            // Create reservation
+            String reservationJson = objectMapper.writeValueAsString(reservation);
+            String savedJson = restTemplate.postForObject(apiBaseUrl, reservationJson, String.class);
+            Reservation saved = objectMapper.readValue(savedJson, Reservation.class);
+
+            // Create payment
+            restTemplate.postForObject(apiBaseUrl + "/" + saved.getId() + "/payment", null, String.class);
+
+            // Create ticket
+            String ticketJson = restTemplate.postForObject(apiBaseUrl + "/" + saved.getId() + "/ticket", null, String.class);
+            AirlineTicket ticket = objectMapper.readValue(ticketJson, AirlineTicket.class);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Reservation completed! Ticket #: " + ticket.getNumber());
+            return "redirect:/reservations/" + saved.getId();
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error creating reservation: " + e.getMessage());
+            return "redirect:/reservation";
+        }
+    }
+
+    @GetMapping("/reservations/{id}")
+    public String viewReservation(@PathVariable String id, Model model) {
+        try {
+            String reservationJson = restTemplate.getForObject(apiBaseUrl + "/" + id, String.class);
+            Reservation reservation = objectMapper.readValue(reservationJson, Reservation.class);
+            model.addAttribute("reservation", reservation);
+
+            String paymentJson = restTemplate.getForObject(apiBaseUrl + "/" + id + "/payment", String.class);
+            model.addAttribute("payment", objectMapper.readValue(paymentJson, Payment.class));
+
+            String ticketJson = restTemplate.getForObject(apiBaseUrl + "/" + id + "/ticket", String.class);
+            model.addAttribute("ticket", objectMapper.readValue(ticketJson, AirlineTicket.class));
+
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Error loading reservation: " + e.getMessage());
+        }
+        return "reservation-view";
+    }
+
+    @GetMapping("/reservations")
+    public String listReservations(Model model) {
+        try {
+            String json = restTemplate.getForObject(apiBaseUrl, String.class);
+            List<Reservation> reservations = objectMapper.readValue(json, new TypeReference<List<Reservation>>() {});
+            model.addAttribute("reservations", reservations);
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Error loading reservations: " + e.getMessage());
+        }
+        return "reservation-list";
+    }
+
+    @PostMapping("/reservations/update/{id}")
+    public String updateReservation(@PathVariable String id, @ModelAttribute Reservation updatedReservation,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            String json = objectMapper.writeValueAsString(updatedReservation);
+            restTemplate.put(apiBaseUrl + "/" + id, json);
+            redirectAttributes.addFlashAttribute("successMessage", "Reservation updated successfully!");
+            return "redirect:/reservations/" + id;
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error updating reservation: " + e.getMessage());
+            return "redirect:/reservations/edit/" + id;
+        }
+    }
+
+    @PostMapping("/reservations/delete/{id}")
+    public String deleteReservation(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        try {
+            restTemplate.delete(apiBaseUrl + "/" + id);
+            redirectAttributes.addFlashAttribute("successMessage", "Reservation deleted successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error deleting reservation: " + e.getMessage());
+        }
+        return "redirect:/reservations";
+    }
+
+    @PostMapping("/reservations/{id}/process-payment")
+    public String processPayment(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        try {
+            restTemplate.postForObject(apiBaseUrl + "/" + id + "/process-payment", null, String.class);
+            redirectAttributes.addFlashAttribute("successMessage", "Payment processed successfully!");
+            return "redirect:/reservations/" + id + "/issue-ticket";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error processing payment: " + e.getMessage());
+            return "redirect:/reservations/" + id + "/process-payment";
+        }
+    }
+
+    @PostMapping("/reservations/{id}/issue-ticket")
+    public String issueTicket(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        try {
+            restTemplate.postForObject(apiBaseUrl + "/" + id + "/issue-ticket", null, String.class);
+            redirectAttributes.addFlashAttribute("successMessage", "Ticket issued successfully!");
+            return "redirect:/reservations/" + id;
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error issuing ticket: " + e.getMessage());
+            return "redirect:/reservations/" + id + "/issue-ticket";
+        }
+    }
+}

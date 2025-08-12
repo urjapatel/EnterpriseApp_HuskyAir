@@ -1,0 +1,38 @@
+package com.ur.spring.finalex.service;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.ur.spring.finalex.model.AirlineTicket;
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.AirlineTicketRepository;
+import com.ur.spring.finalex.repository.PaymentRepository;
+
+@Service
+public class TicketService {
+ 
+ private final AirlineTicketRepository ticketRepository;
+ 
+	// Constructor injection
+ @Autowired
+ public TicketService(AirlineTicketRepository ticketRepository) {
+     this.TicketService = ticketRepository;
+ }
+ 
+ public AirlineTicket generateTicket(Reservation reservation, Payment payment) {
+     AirlineTicket ticket = new AirlineTicket();
+     ticket.setReservationId(reservation.getId());
+     ticket.setNumber(generateTicketNumber());
+     ticket.setPrice(payment.getAmount());
+     return ticketRepository.save(ticket);
+ }
+ 
+ 
+ private String generateTicketNumber() {
+     return "TK" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+ }
+}

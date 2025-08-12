@@ -1,0 +1,47 @@
+package com.ur.spring.finalex.controller;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import java.util.List;
+@Controller
+public class ReservationController {
+    
+	private final ReservationRepository reservationRepository;
+    
+    public ReservationController(ReservationRepository reservationRepository) {
+        this.reservationRepository = reservationRepository;
+    }
+    @GetMapping("/reservation")
+    public String showReservationForm(Model model) {
+        model.addAttribute("reservation", new Reservation());
+        return "reservation-form";
+    }
+    
+    @PostMapping("/reservation")
+    public String submitReservation(@ModelAttribute Reservation reservation, Model model) {
+        // In a real application, you would save to database here
+        model.addAttribute("reservation", reservation);
+        return "reservation-success";
+    }
+    
+    // HTML View Endpoint
+    @GetMapping("/reservations")
+    public String getAllReservations(Model model) {
+        List<Reservation> reservations = reservationRepository.findAll();
+        model.addAttribute("reservations", reservations);
+        return "reservation-list"; // Thymeleaf template name
+    }
+}

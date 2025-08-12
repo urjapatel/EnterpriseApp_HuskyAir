@@ -1,0 +1,6 @@
+spring.application.name=Urja_ITE5435_FinalExam
+spring.data.mongodb.uri=mongodb+srv://root:root%40123@ite5315-urja.3zqez.mongodb.net/husky_air_db?retryWrites=true&w=majority
+
+spring.thymeleaf.cache=false
+
+server.port=8080

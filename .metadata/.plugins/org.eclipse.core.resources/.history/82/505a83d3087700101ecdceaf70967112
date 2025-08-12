@@ -1,0 +1,34 @@
+package com.ur.spring.finalex.model;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import lombok.Data;
+
+@Document(collection = "airline_tickets")
+@Data
+public class AirlineTicket {
+    @Id
+    private String id;
+    
+    private String number;
+    private String details;
+    private double price;
+    
+    @DBRef
+    @JsonBackReference
+    private Reservation reservation;
+    
+    public double calculatePrice(int passengers, String travelClass) {
+        double basePrice = price;
+        if ("Business".equalsIgnoreCase(travelClass)) {
+            basePrice *= 1.5;
+        } else if ("First".equalsIgnoreCase(travelClass)) {
+            basePrice *= 2.0;
+        }
+        return basePrice * passengers;
+    }
+}

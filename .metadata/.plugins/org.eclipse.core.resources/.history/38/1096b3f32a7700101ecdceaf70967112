@@ -1,0 +1,128 @@
+package com.ur.spring.finalex.controller;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ur.spring.finalex.model.AirlineTicket;
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.ReservationRepository;
+import com.ur.spring.finalex.service.PaymentService;
+import com.ur.spring.finalex.service.TicketService;
+import org.springframework.web.bind.annotation.PathVariable;
+
+@RestController
+@RequestMapping("/api/reservations")
+public class ApiController {
+
+    private final ReservationRepository reservationRepository;
+    private final ObjectMapper objectMapper;
+    private final PaymentService paymentService;
+    private final TicketService ticketService;
+
+    public ApiController(ReservationRepository reservationRepository, ObjectMapper objectMapper,
+                         PaymentService paymentService, TicketService ticketService) {
+        this.reservationRepository = reservationRepository;
+        this.objectMapper = objectMapper;
+        this.paymentService = paymentService;
+        this.ticketService = ticketService;
+    }
+
+    @GetMapping
+    public ResponseEntity<String> getAllReservations() throws JsonProcessingException {
+        List<Reservation> reservations = reservationRepository.findAll();
+        return ResponseEntity.ok(objectMapper.writeValueAsString(reservations));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<String> getReservationById(@PathVariable String id) {
+        Optional<Reservation> reservation = reservationRepository.findById(id);
+        if (reservation.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            return ResponseEntity.ok(objectMapper.writeValueAsString(reservation.get()));
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .body("Error processing reservation data");
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<String> createReservation(@RequestBody String reservationJson) {
+        try {
+            Reservation reservation = objectMapper.readValue(reservationJson, Reservation.class);
+            Reservation savedReservation = reservationRepository.save(reservation);
+
+            // Payment + Ticket generation
+            Payment payment = paymentService.createPayment(savedReservation);
+            AirlineTicket ticket = ticketService.generateTicket(savedReservation, payment);
+
+            savedReservation.setPayment(payment);
+            savedReservation.setTicket(ticket);
+            Reservation finalReservation = reservationRepository.save(savedReservation);
+
+            return ResponseEntity.ok(objectMapper.writeValueAsString(finalReservation));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error creating reservation: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateReservation(@PathVariable String id, @RequestBody String reservationJson) {
+        Optional<Reservation> existingOpt = reservationRepository.findById(id);
+        if (existingOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            Reservation existingReservation = existingOpt.get();
+            Reservation updates = objectMapper.readValue(reservationJson, Reservation.class);
+
+            existingReservation.setFirstName(updates.getFirstName());
+            existingReservation.setLastName(updates.getLastName());
+            existingReservation.setNumberOfPassengers(updates.getNumberOfPassengers());
+            existingReservation.setTravelClass(updates.getTravelClass());
+            existingReservation.setPhoneNumber(updates.getPhoneNumber());
+            existingReservation.setTime(updates.getTime());
+            existingReservation.setDateOfDeparture(updates.getDateOfDeparture());
+
+            if (existingReservation.getPayment() != null) {
+                Payment payment = paymentService.findByReservationId(id);
+                double newAmount = paymentService.calculateAmount(existingReservation);
+                payment.setAmount(newAmount);
+                payment.setDetails("Updated payment for modified reservation");
+                paymentService.updatePayment(payment);
+            }
+
+            if (existingReservation.getTicket() != null) {
+                AirlineTicket ticket = ticketService.findByReservationId(id);
+                ticket.setPrice(paymentService.calculateAmount(existingReservation));
+                ticket.setDetails("Ticket for " + existingReservation.getNumberOfPassengers() +
+                        " passengers in " + existingReservation.getTravelClass() + " class");
+                ticketService.updateTicket(ticket);
+            }
+
+            Reservation updated = reservationRepository.save(existingReservation);
+            return ResponseEntity.ok(objectMapper.writeValueAsString(updated));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid JSON format or error: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReservation(@PathVariable String id) {
+        if (!reservationRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        reservationRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+}

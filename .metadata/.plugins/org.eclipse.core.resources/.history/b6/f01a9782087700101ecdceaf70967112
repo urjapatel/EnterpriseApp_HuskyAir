@@ -1,0 +1,33 @@
+package com.ur.spring.finalex.service;
+
+import org.springframework.stereotype.Service;
+
+import com.ur.spring.finalex.model.Payment;
+import com.ur.spring.finalex.model.Reservation;
+import com.ur.spring.finalex.repository.PaymentRepository;
+
+@Service
+public class PaymentService {
+ 
+ private final PaymentRepository paymentRepository;
+ 
+ public Payment createPayment(Reservation reservation) {
+     Payment payment = new Payment();
+     payment.setReservationId(reservation.getId());
+     payment.setAmount(calculateAmount(reservation));
+     payment.setStatus("PENDING");
+     return paymentRepository.save(payment);
+ }
+ 
+ private double calculateAmount(Reservation reservation) {
+     // Your pricing logic here
+     return 199.99; // Example fixed price
+ }
+ 
+ public boolean verifyPayment(Payment payment) {
+     // Integration with payment gateway would go here
+     payment.setStatus("COMPLETED");
+     paymentRepository.save(payment);
+     return true;
+ }
+}

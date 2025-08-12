@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${reservation.id != null} ? 'Edit Reservation' : 'New Reservation'">Husky Air - Reservation Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4" th:text="${reservation.id != null} ? 'Edit Reservation' : 'New Reservation'"></h1>
+        
+        <!-- Success/Error messages -->
+        <div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
+        <div class="alert alert-danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+        
+        <form th:action="${reservation.id == null} ? @{/reservation} : @{'/reservations/update/' + ${reservation.id}}" 
+      method="post"
+      th:object="${reservation}">
+            
+            <input type="hidden" th:field="${reservation.id}" th:if="${reservation.id != null}">
+            
+            <!-- Form fields remain the same as before -->
+            <div class="mb-3">
+                <label for="firstName" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="firstName" th:field="*{firstName}" required>
+            </div>
+            
+           <div class="mb-3">
+                <label for="lastName" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="lastName" th:field="*{lastName}" required>
+            </div>
+            <div class="mb-3">
+                <label for="numberOfPassengers" class="form-label">No. of Passengers</label>
+                <input type="number" class="form-control" id="numberOfPassengers" th:field="*{numberOfPassengers}" min="1" required>
+            </div>
+            <div class="mb-3">
+                <label for="travelClass" class="form-label">Select your Class</label>
+                <select class="form-select" id="travelClass" th:field="*{travelClass}" required>
+                    <option value="">-- Select Class --</option>
+                    <option value="Economy">Economy</option>
+                    <option value="Business">Business</option>
+                    <option value="First">First Class</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="phoneNumber" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phoneNumber" th:field="*{phoneNumber}" required>
+            </div>
+			<div class="mb-3">
+			    <label for="time" class="form-label">Time</label>
+			    <input type="time" class="form-control" id="time" 
+			           th:field="*{time}"
+			           th:value="*{time != null} ? ${#temporals.format(time, 'HH:mm')} : ''"
+			           required>
+			</div>
+			<div class="mb-3">
+			    <label for="dateOfDeparture" class="form-label">Date of Departing</label>
+			    <input type="date" class="form-control" id="dateOfDeparture" 
+			           th:field="*{dateOfDeparture}"
+			           th:value="{dateOfDeparture != null} ? ${#temporals.format(dateOfDeparture, 'yyyy-MM-dd')} : ''"
+			           required>
+			</div>            
+            <button type="submit" class="btn btn-primary">
+                <span th:text="${reservation.id == null} ? 'Create' : 'Update'"></span> Reservation
+            </button>
+            <a th:href="@{/reservations}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>
